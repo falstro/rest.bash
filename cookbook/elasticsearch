@@ -1,0 +1,23 @@
+# Very simple query-string search command while working the elasticsearch.
+# Will post to the relative path _search, so should work with either and /index or
+# /index/type path.
+
+# To use this script, place it in your ~/.rest.bashrc.d directory.
+
+json-escape() {
+  echo -n "$*" | \
+    python -c 'import json,sys; print json.dumps(sys.stdin.read())'
+}
+
+query-string() {
+
+  post _search <<EOF
+{
+  "query": {
+    "query_string": {
+      "query": $(json-escape $*)
+    }
+  }
+}
+EOF
+}

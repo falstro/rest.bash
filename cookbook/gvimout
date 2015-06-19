@@ -1,0 +1,25 @@
+# Places hooks for using gVIm as an output display. Turn on by issuing a
+# gvimout on
+# And it should start a gVIm. Multiple rest.bash instances will share output
+# window. To change the servername (e.g. if you don't want to share output
+# window), set the 'GVIM' environment variable.
+
+# To use this script, place it in your ~/.rest.bashrc.d directory.
+
+GVIM=REST
+gvimout-trigger() {
+  gvim  --servername $GVIM \
+        --remote-send ':checktime<CR>' \
+        --remote-send ':redraw<CR>'
+}
+
+gvimout() {
+  if =truth $1; then
+    gvim --servername $GVIM --remote-silent $OUTPUT
+    _on_output=gvimout-trigger
+    _stdout="test ! -t 1"
+  else
+    _on_output=true
+    _stdout=true
+  fi
+}
