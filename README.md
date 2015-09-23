@@ -40,6 +40,8 @@ needed, they must be sourced explicitly.
 
 REST.BASH COMMANDS
 ==================
+* header <header-name> [header-value]  
+* authorization [header-value]  
 * accept [header-value]  
 * content-type [header-value]  
 * cookie [header-value]  

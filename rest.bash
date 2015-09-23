@@ -44,6 +44,8 @@ fi
 #         needed, they must be sourced explicitly.
 #
 # REST.BASH COMMANDS
+#         * header <header-name> [header-value] 
+#         * authorization [header-value] 
 #         * accept [header-value] 
 #         * content-type [header-value] 
 #         * cookie [header-value] 
@@ -367,28 +369,43 @@ declare -A CURL_OPTS
   done
 }
 
-# HTTP request header functions, call without parameter to clear.
+# HTTP request header functions, call without value to clear.
 
+header() {
+  if [ -n "$1" ]; then
+    local header="$1"
+    local key="head:$header"
+    shift
+    unset CURL_OPTS[$key]
+    [ -n "$1" ] && CURL_OPTS[$key]="|-H|$header: $*"
+  else
+    for key in "${!CURL_OPTS[@]}"; do
+      if [ "${key#head:}" != "$key" ]; then
+        sed -e 's/.*|//' <<<"${CURL_OPTS[$key]}"
+      fi
+    done
+  fi
+}
 accept() {
-  unset CURL_OPTS[HTTP_ACCEPT]
-  [ -n "$1" ] && CURL_OPTS[HTTP_ACCEPT]="|-H|Accept: $1"
+  header Accept "$@"
 }
 
 content-type() {
-  unset CURL_OPTS[HTTP_CONTENT_TYPE]
-  [ -n "$1" ] && CURL_OPTS[HTTP_CONTENT_TYPE]="|-H|Content-Type: $1"
+  header Content-Type "$@"
 }
 
 cookie() {
-  unset CURL_OPTS[HTTP_COOKIE]
-  [ -n "$1" ] && CURL_OPTS[HTTP_COOKIE]="|-H|Cookie: $1"
+  header Cookie "$@"
+}
+
+authorization() {
+  header Authorization "$@"
 }
 
 basic-auth() {
   local user="$1"
   local pass="$2"
   [ -z "$user" ] && read -r -p "Username: " user
-  unset CURL_OPTS[HTTP_AUTHORIZATION]
   if [ -n "$user" ]; then
     if [ -z "$pass" ]; then
       read -rs -p "Password: " pass
@@ -396,7 +413,7 @@ basic-auth() {
     fi
     # don't use --user param to curl, password may contain '|'.
     local b64=`echo -n $user:$pass|base64`
-    CURL_OPTS[HTTP_AUTHORIZATION]="|-H|Authorization: Basic $b64"
+    authorization Basic $b64
   fi
 }
 
