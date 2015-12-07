@@ -483,27 +483,31 @@ JOQE="`which joqe`"
   $JSONPP "$1" || =plain-filter "$1"
 }
 
-=json-select() {
-  $JOQE "$@" $OUTPUT
+=joqe-filter() {
+  $JOQE -ffqr / "$1" || =plain-filter "$1"
+}
+=joqe-select() {
+  $JOQE -ffr "$*" "$OUTPUT"
 }
 
 +json() {
   accept 'application/json,*/*;q=0.9'
   content-type application/json
 
-  if $JSONPP >/dev/null 2>&1 <<<"{}"
-  then
-    output_filter='=json-filter'
-  else
-    output_filter='=plain-filter'
-    echo "python json.tool unavailable, pretty printing disabled." >&2
-  fi
 
-  if [ ! -x "$JOQE" ]; then
+  if [ -x "$JOQE" ]; then
+    alias sel='=joqe-select'
+    output_filter='=joqe-filter'
+  else
     alias sel='=plain-select'
     echo "joqe unavailable." >&2
-  else
-    alias sel='=json-select'
+    if $JSONPP >/dev/null 2>&1 <<<"{}"
+    then
+      output_filter='=json-filter'
+    else
+      output_filter='=plain-filter'
+      echo "python json.tool unavailable, pretty printing disabled." >&2
+    fi
   fi
 }
 
