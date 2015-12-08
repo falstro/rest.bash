@@ -141,6 +141,13 @@ fi
 #                       functions as aliases are resolved during function
 #                       declaration.
 #
+#         * suffix [suffix] 
+#                 Add an implicit suffix to all URLs. Some APIs use a
+#                 'file extension' to specify content type, like
+#                 '.json', (rather than the Accept header), in which
+#                 case this comes in handy. The suffix is inserted
+#                 before the '?' if present, otherwise it's appended.
+#
 #         * ssl-insecure [on] 
 #                 Specify 'ssl-insecure on' or 'ssl-insecure yes' to tell curl
 #                 to ignore SSL certificate errors. Useful when running tests
@@ -320,6 +327,7 @@ _stdout=true
 URL_PROTO="http"
 URL_HOST="localhost"
 URL_PATH=""
+URL_SUFFIX=""
 url() { echo "$URL_PROTO://$URL_HOST${URL_PATH:-/}"; }
 URL_PREV="$(url)"
 
@@ -594,12 +602,23 @@ cq() {
   URL_PATH="$n"
 }
 
+suffix() {
+  URL_SUFFIX="$1"
+}
 
 curl() {
   TMPOUT=`/bin/mktemp /tmp/rest-output-tmp.XXXXXX`
   (
     IFS="|"
-    $CURL $(=curl-opts) "$@" -o $TMPOUT "$(url)"
+    url=$(url)
+    if [ -n "$URL_SUFFIX" ]; then
+      if [[ $url == *\?* ]]; then
+        url="${url/\?/$URL_SUFFIX?}"
+      else
+        url="$url$URL_SUFFIX"
+      fi
+    fi
+    $CURL $(=curl-opts) "$@" -o $TMPOUT "$url"
   )
   code=$?
 
