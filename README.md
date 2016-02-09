@@ -137,6 +137,13 @@ REST.BASH COMMANDS
        functions as aliases are resolved during function
        declaration.
 
+* suffix [suffix]  
+    Add an implicit suffix to all URLs. Some APIs use a
+    'file extension' to specify content type, like
+    '.json', (rather than the Accept header), in which
+    case this comes in handy. The suffix is inserted
+    before the '?' if present, otherwise it's appended.
+
 * ssl-insecure [on]  
     Specify 'ssl-insecure on' or 'ssl-insecure yes' to tell curl
     to ignore SSL certificate errors. Useful when running tests
