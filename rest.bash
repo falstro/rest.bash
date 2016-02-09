@@ -291,7 +291,6 @@ default-settings() {
 CURL=/usr/bin/curl
 CUT=/usr/bin/cut
 GREP=/bin/grep
-HEAD=/usr/bin/head
 MKTEMP=/bin/mktemp
 RM=/bin/rm
 SED=/bin/sed
@@ -344,9 +343,10 @@ files() {
   echo HTTP Status: $HTTPHEADER
 }
 resultcode() {
-  local line=`$HEAD -n1 $HTTPHEADER`
+  local line=`$SED -ne 's/[\r\n]*$//' -e1p -eq $HTTPHEADER`
   case $line in
-    HTTP/1.*|HTTP/0.9) cut -f2 -d ' '<<<$line; ;;
+    HTTP/2.0\ *) cut -f2 -d ' '<<<$line; ;;
+    HTTP/1.*|HTTP/0.9\ *) cut -f2 -d ' '<<<$line; ;;
     *) echo ---; ;;
   esac
 }
