@@ -83,10 +83,10 @@ REST.BASH COMMANDS
     meaning they can even be used inside the editor once it's
     running.
 
-* get [url]  
-* post [url]  
-* put [url]  
-* delete [url]  
+* get [-dn] [url]  
+* post [-dn] [url]  
+* put [-dn] [url]  
+* delete [-dn] [url]  
     Execute get, post, put, and delete requests using the
     current URL. If the optional URL element is specified it is
     interpreted relative to the current URL as 'cq' would have.
@@ -105,7 +105,15 @@ REST.BASH COMMANDS
     host unreachable) or any HTTP response code of 400 or greater
     is considered false.
 
-    'get' and 'delete' will not read $PAYLOAD.
+    * -d  
+       Read payload data from $PAYLOAD
+    * -n  
+       Do not read any payload.
+
+    'get' and 'delete' will not read $PAYLOAD unless '-d' is set,
+    whereas 'post' and put *will* read $PAYLOAD unless '-n' is
+    set. If both '-d' and '-n' are specified and/or multiple
+    times, the last occurence will take precedence.
 
 * load [file]  
     Short hand command for loading a file into $PAYLOAD. If no

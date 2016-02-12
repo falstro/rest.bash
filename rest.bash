@@ -87,10 +87,10 @@ fi
 #                 meaning they can even be used inside the editor once it's
 #                 running.
 #
-#         * get [url] 
-#         * post [url] 
-#         * put [url] 
-#         * delete [url] 
+#         * get [-dn] [url] 
+#         * post [-dn] [url] 
+#         * put [-dn] [url] 
+#         * delete [-dn] [url] 
 #                 Execute get, post, put, and delete requests using the
 #                 current URL. If the optional URL element is specified it is
 #                 interpreted relative to the current URL as 'cq' would have.
@@ -109,7 +109,15 @@ fi
 #                 host unreachable) or any HTTP response code of 400 or greater
 #                 is considered false.
 #
-#                 'get' and 'delete' will not read $PAYLOAD.
+#                 * -d 
+#                       Read payload data from $PAYLOAD
+#                 * -n 
+#                       Do not read any payload.
+#
+#                 'get' and 'delete' will not read $PAYLOAD unless '-d' is set,
+#                 whereas 'post' and put *will* read $PAYLOAD unless '-n' is
+#                 set. If both '-d' and '-n' are specified and/or multiple
+#                 times, the last occurence will take precedence.
 #
 #         * load [file] 
 #                 Short hand command for loading a file into $PAYLOAD. If no
@@ -648,34 +656,61 @@ load() {
   [ -t 0 ] && echo $PAYLOAD || echo -
 }
 
+_call() {
+  local f="$1"
+  shift
+
+  local OPTIND opt dp
+
+  while getopts "dn" opt; do
+    case "$opt" in
+      d) dp="--data-binary|@$(=payload-file)"; ;;
+      n) dp=""; ;;
+    esac
+  done
+
+  shift $((OPTIND-1))
+
+  local IFS='|'
+  if [ -n "$1" ]; then
+    (cq "$1"; shift; local IFS='|'; "$f" $dp "$@";)
+  else
+    "$f" $dp "$@"
+  fi
+}
+_get() {
+  curl "$@"
+}
 get() {
-  if [ -n "$1" ]; then (cq "$1" && get);
-  else curl;
-  fi
+  _call _get "$@"
 }
 
+_head() {
+  curl -I "$@"
+}
 head() {
-  if [ -n "$1" ]; then (cq "$1" && head);
-  else curl -I
-  fi
+  _call _head "$@"
 }
 
+_post() {
+  curl -XPOST "$@"
+}
 post() {
-  if [ -n "$1" ]; then (cq "$1" && post);
-  else curl --data-binary "@$(=payload-file)";
-  fi
+  _call _post -d "$@"
 }
 
+_put() {
+  curl -XPUT "$@"
+}
 put() {
-  if [ -n "$1" ]; then (cq "$1" && put);
-  else curl -XPUT --data-binary "@$(=payload-file)";
-  fi
+  _call _put -d "$@"
 }
 
+_delete() {
+  curl -XDELETE "$@"
+}
 delete() {
-  if [ -n "$1" ]; then (cq "$1" && delete);
-  else curl -XDELETE;
-  fi
+  _call _delete "$@"
 }
 
 default-settings
