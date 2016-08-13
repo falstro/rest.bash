@@ -496,7 +496,10 @@ JSONPP="/usr/bin/python -m json.tool"
 JOQE="`which joqe`"
 
 =json-filter() {
+  local oIFS="$IFS"
+  unset IFS
   $JSONPP "$1" || =plain-filter "$1"
+  IFS="$oIFS"
 }
 
 =joqe-filter() {
