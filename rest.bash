@@ -496,10 +496,7 @@ JSONPP="/usr/bin/python -m json.tool"
 JOQE="`which joqe`"
 
 =json-filter() {
-  local oIFS="$IFS"
-  unset IFS
   $JSONPP "$1" || =plain-filter "$1"
-  IFS="$oIFS"
 }
 
 =joqe-filter() {
@@ -665,20 +662,25 @@ _call() {
 
   local OPTIND opt dp
 
+  dp=false
   while getopts "dn" opt; do
     case "$opt" in
-      d) dp="--data-binary|@$(=payload-file)"; ;;
-      n) dp=""; ;;
+      d) dp=true; ;;
+      n) dp=false; ;;
     esac
   done
 
   shift $((OPTIND-1))
 
-  local IFS='|'
+  local args=()
+  if $dp; then
+    args+=("--data-binary" "@$(=payload-file)")
+  fi
+
   if [ -n "$1" ]; then
-    (cq "$1"; shift; local IFS='|'; "$f" $dp "$@";)
+    (cq "$1"; shift; "$f" "${args[@]}" "$@";)
   else
-    "$f" $dp "$@"
+    "$f" "${args[@]}" "$@"
   fi
 }
 _get() {
