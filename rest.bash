@@ -1,4 +1,5 @@
 #!/bin/bash
+# vim:sw=2 sts=2 et:
 if [ -z "$PS1" ]; then
   if [ -z "$1" ]; then
     exec /bin/bash --init-file "$0"
@@ -50,7 +51,10 @@ fi
 #         * content-type [header-value] 
 #         * cookie [header-value] 
 #                 Set the HTTP header to the specified value. Omitting the
-#                 value removes the header.
+#                 value prints the currently set value, if any.
+#
+#         * header -d <header-name>
+#                 Remove the header if set.
 #
 #         * basic-auth [user] [pass] 
 #                 Set the Authentication header to use basic authentication.
@@ -390,34 +394,57 @@ declare -A CURL_OPTS
 # HTTP request header functions, call without value to clear.
 
 header() {
-  if [ -n "$1" ]; then
-    local header="$1"
-    local key="head:$header"
+  local OPTIND opt d=false H=false header
+  while getopts "dH:" opt; do
+    case "$opt" in
+      d) d=true; ;;
+      H) H=true; header="$OPTARG"; ;;
+      ?) return; ;;
+    esac
+  done
+  shift $((OPTIND-1))
+  if ! $H && [ -n "${1+x}" ]; then
+    H=true
+    header="$1"
     shift
-    unset CURL_OPTS[$key]
-    [ -n "$1" ] && CURL_OPTS[$key]="|-H|$header: $*"
+  fi
+  if $H; then
+    local key="head:$header"
+    if [ -n "${1+x}" ]; then
+      if $d; then
+        echo "Can't set and delete at the same time." >&2
+      else
+        unset CURL_OPTS[$key]
+        CURL_OPTS[$key]="|-H|$header: $*"
+      fi
+    elif $d; then
+      unset CURL_OPTS[$key]
+    else
+      echo "${CURL_OPTS[$key]#*: }"
+    fi
   else
     for key in "${!CURL_OPTS[@]}"; do
-      if [ "${key#head:}" != "$key" ]; then
+      if [ "${key%%:*}" = "head" ]; then
         sed -e 's/.*|//' <<<"${CURL_OPTS[$key]}"
       fi
     done
   fi
 }
+
 accept() {
-  header Accept "$@"
-}
-
-content-type() {
-  header Content-Type "$@"
-}
-
-cookie() {
-  header Cookie "$@"
+  header -H Accept "$@"
 }
 
 authorization() {
-  header Authorization "$@"
+  header -H Authorization "$@"
+}
+
+content-type() {
+  header -H Content-Type "$@"
+}
+
+cookie() {
+  header -H Cookie "$@"
 }
 
 basic-auth() {
@@ -464,7 +491,7 @@ mode() {
 ## helper function for unsetting common mode overrides
 =unset-mode() {
   accept '*/*'
-  content-type
+  content-type -d
   output_filter='cat'
   alias sel=false
 }
