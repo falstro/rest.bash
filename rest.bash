@@ -90,6 +90,7 @@ fi
 #         * get [-dn] [url] 
 #         * post [-dn] [url] 
 #         * put [-dn] [url] 
+#         * options [-dn] [url]
 #         * delete [-dn] [url] 
 #                 Execute get, post, put, and delete requests using the
 #                 current URL. If the optional URL element is specified it is
@@ -114,10 +115,11 @@ fi
 #                 * -n 
 #                       Do not read any payload.
 #
-#                 'get' and 'delete' will not read $PAYLOAD unless '-d' is set,
-#                 whereas 'post' and put *will* read $PAYLOAD unless '-n' is
-#                 set. If both '-d' and '-n' are specified and/or multiple
-#                 times, the last occurence will take precedence.
+#                 'get', 'options', and 'delete' will not read $PAYLOAD unless
+#                 '-d' is set, whereas 'post' and put *will* read $PAYLOAD
+#                 unless '-n' is set. If both '-d' and '-n' are specified
+#                 and/or multiple times, the last occurence will take
+#                 precedence.
 #
 #         * load [file] 
 #                 Short hand command for loading a file into $PAYLOAD. If no
@@ -263,7 +265,7 @@ fi
 #         Written by Fredrik Alstromer <falstro@excu.se>
 #
 # COPYRIGHT
-#         rest.bash is Copyright (c) 2015 Fredrik Alstromer.
+#         rest.bash is Copyright (c) 2015-2017 Fredrik Alstromer.
 #
 #         Distributed under the MIT license.
 #
@@ -709,6 +711,13 @@ _put() {
 }
 put() {
   _call _put -d "$@"
+}
+
+_options() {
+  curl -XOPTIONS "$@"
+}
+options() {
+  _call _options "$@"
 }
 
 _delete() {
