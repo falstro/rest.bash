@@ -747,6 +747,13 @@ options() {
   _call _options "$@"
 }
 
+_patch() {
+  curl -XPATCH "$@"
+}
+patch() {
+  _call _patch -d "$@"
+}
+
 _delete() {
   curl -XDELETE "$@"
 }
