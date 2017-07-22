@@ -52,10 +52,6 @@ fi
 #         * cookie [header-value] 
 #                 Set the HTTP header to the specified value. Omitting the
 #                 value prints the currently set value, if any.
-#         * cookie-jar <on/file-name/off>
-#                 Enable or disable the use of a cookie jar. Specifying a
-#                 file-name will enable cookie-jar with that file, specifying
-#                 "on" will use a temporary file.
 #
 #         * header -d <header-name>
 #                 Remove the header if set.
@@ -172,6 +168,16 @@ fi
 #                 using self signed certificates or similar. Specifying
 #                 anything else (such as 'off' or 'no') will enable
 #                 certificate validation (this is also the default).
+#
+#         * cookie-jar [on/file-name/off]
+#                 Enable or disable the use of a cookie jar. Specifying a
+#                 file-name will enable cookie-jar with that file, specifying
+#                 "on" will use a temporary file. If not parameter is given,
+#                 the current state is returned.
+#
+#         * user-agent [-d] [user-agent]
+#                 Set the user-agent string, or use -d to revert to default. If
+#                 no parameter is given, the current state is returned.
 #
 # CUSTOM MODES
 #         To define custom modes you need to define a function using the name
@@ -315,6 +321,8 @@ RM=/bin/rm
 SED=/bin/sed
 TEE=/usr/bin/tee
 
+VERSION=0.9
+
 HISTFILE=~/.rest.bash_history
 
 if [ -n "$PS1" ]; then
@@ -394,7 +402,7 @@ resultcode-color() {
 declare -A CURL_OPTS
 
 =curl-opts() {
-  echo -n "-s|-D|$HTTPHEADER"
+  echo -n "-s|-A|rest.bash/$VERSION|-D|$HTTPHEADER"
   for key in "${!CURL_OPTS[@]}"; do
     echo -n "${CURL_OPTS[$key]}"
   done
@@ -456,25 +464,6 @@ cookie() {
   header -H Cookie "$@"
 }
 
-cookie-jar() {
-    if [ -z "$1" ]; then
-        local val="${CURL_OPTS[COOKIEJAR]#|-c|}"
-        if [ -z "${CURL_OPTS[COOKIEJAR]}" ]; then
-            echo cookie-jar off
-        elif [ "$val" == "$COOKIEJAR" ]; then
-            echo cookie-jar on
-        else
-            echo cookie-jar "$val"
-        fi
-    elif =truth "$1"; then
-        CURL_OPTS[COOKIEJAR]="|-c|$COOKIEJAR"
-    elif [ $? -eq 1 ]; then
-        unset CURL_OPTS[COOKIEJAR]
-    else
-        CURL_OPTS[COOKIEJAR]="|-c|$1"
-    fi
-}
-
 basic-auth() {
   local user="$1"
   local pass="$2"
@@ -494,6 +483,45 @@ basic-auth() {
 ssl-insecure() {
   unset CURL_OPTS[SSL_INSECURE]
   =truth "$1" && CURL_OPTS[SSL_INSECURE]='|-k'
+}
+
+cookie-jar() {
+    if [ -z "$1" ]; then
+        local val="${CURL_OPTS[COOKIEJAR]#|-c|}"
+        if [ -z "${CURL_OPTS[COOKIEJAR]}" ]; then
+            echo cookie-jar off
+        elif [ "$val" == "$COOKIEJAR" ]; then
+            echo cookie-jar on
+        else
+            echo cookie-jar "$val"
+        fi
+    elif =truth "$1"; then
+        CURL_OPTS[COOKIEJAR]="|-c|$COOKIEJAR"
+    elif [ $? -eq 1 ]; then
+        unset CURL_OPTS[COOKIEJAR]
+    else
+        CURL_OPTS[COOKIEJAR]="|-c|$1"
+    fi
+}
+
+user-agent() {
+    local OPTIND opt d=false
+    while getopts d opt; do
+        case "$opt" in
+            d) d=true; ;;
+            ?) return; ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    if $d; then
+        unset CURL_OPTS[USER_AGENT]
+    elif [ -n "$1" ]; then
+        CURL_OPTS[USER_AGENT]="|-A|$1"
+    elif [ -n "${CURL_OPTS[USER_AGENT]}" ]; then
+        echo "${CURL_OPTS[USER_AGENT]#|-A|}"
+    else
+        echo "default"
+    fi
 }
 
 # I/O mode switching functions
