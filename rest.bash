@@ -52,6 +52,10 @@ fi
 #         * cookie [header-value] 
 #                 Set the HTTP header to the specified value. Omitting the
 #                 value prints the currently set value, if any.
+#         * cookie-jar <on/file-name/off>
+#                 Enable or disable the use of a cookie jar. Specifying a
+#                 file-name will enable cookie-jar with that file, specifying
+#                 "on" will use a temporary file.
 #
 #         * header -d <header-name>
 #                 Remove the header if set.
@@ -299,6 +303,7 @@ fi
 default-settings() {
   mode          json
   ssl-insecure  no
+  cookie-jar    on
 }
 
 #NB: IFS is '|' when calling $CURL.
@@ -346,9 +351,10 @@ URL_PREV="$(url)"
 
 PAYLOAD=`$MKTEMP /tmp/rest-payload.XXXXXX`
 OUTPUT=`$MKTEMP /tmp/rest-output.XXXXXX`
+COOKIEJAR=`$MKTEMP /tmp/rest-cookiejar.XXXXXX`
 HTTPHEADER=`$MKTEMP /tmp/rest-httpstatus.XXXXXX`
 
-trap "$RM $PAYLOAD $OUTPUT $HTTPHEADER; mode none" EXIT
+trap "$RM $PAYLOAD $OUTPUT $COOKIEJAR $HTTPHEADER; mode none" EXIT
 export OUTPUT PAYLOAD HTTPHEADER
 
 files() {
@@ -378,8 +384,11 @@ resultcode-color() {
     [Tt]rue|TRUE|[Oo][Nn]|[Yy]es|YES)
       return 0
       ;;
+    [Ff]alse|FALSE|[Oo]ff|OFF|[Nn][Oo])
+      return 1
+      ;;
   esac
-  return 1
+  return 2
 }
 
 declare -A CURL_OPTS
@@ -445,6 +454,25 @@ content-type() {
 
 cookie() {
   header -H Cookie "$@"
+}
+
+cookie-jar() {
+    if [ -z "$1" ]; then
+        local val="${CURL_OPTS[COOKIEJAR]#|-c|}"
+        if [ -z "${CURL_OPTS[COOKIEJAR]}" ]; then
+            echo cookie-jar off
+        elif [ "$val" == "$COOKIEJAR" ]; then
+            echo cookie-jar on
+        else
+            echo cookie-jar "$val"
+        fi
+    elif =truth "$1"; then
+        CURL_OPTS[COOKIEJAR]="|-c|$COOKIEJAR"
+    elif [ $? -eq 1 ]; then
+        unset CURL_OPTS[COOKIEJAR]
+    else
+        CURL_OPTS[COOKIEJAR]="|-c|$1"
+    fi
 }
 
 basic-auth() {
