@@ -486,42 +486,42 @@ ssl-insecure() {
 }
 
 cookie-jar() {
-    if [ -z "$1" ]; then
-        local val="${CURL_OPTS[COOKIEJAR]#|-c|}"
-        if [ -z "${CURL_OPTS[COOKIEJAR]}" ]; then
-            echo cookie-jar off
-        elif [ "$val" == "$COOKIEJAR" ]; then
-            echo cookie-jar on
-        else
-            echo cookie-jar "$val"
-        fi
-    elif =truth "$1"; then
-        CURL_OPTS[COOKIEJAR]="|-c|$COOKIEJAR"
-    elif [ $? -eq 1 ]; then
-        unset CURL_OPTS[COOKIEJAR]
+  if [ -z "$1" ]; then
+    local val="${CURL_OPTS[COOKIEJAR]#|-c|}"
+    if [ -z "${CURL_OPTS[COOKIEJAR]}" ]; then
+      echo cookie-jar off
+    elif [ "$val" == "$COOKIEJAR" ]; then
+      echo cookie-jar on
     else
-        CURL_OPTS[COOKIEJAR]="|-c|$1"
+      echo cookie-jar "$val"
     fi
+  elif =truth "$1"; then
+    CURL_OPTS[COOKIEJAR]="|-c|$COOKIEJAR"
+  elif [ $? -eq 1 ]; then
+    unset CURL_OPTS[COOKIEJAR]
+  else
+    CURL_OPTS[COOKIEJAR]="|-c|$1"
+  fi
 }
 
 user-agent() {
-    local OPTIND opt d=false
-    while getopts d opt; do
-        case "$opt" in
-            d) d=true; ;;
-            ?) return; ;;
-        esac
-    done
-    shift $((OPTIND-1))
-    if $d; then
-        unset CURL_OPTS[USER_AGENT]
-    elif [ -n "$1" ]; then
-        CURL_OPTS[USER_AGENT]="|-A|$1"
-    elif [ -n "${CURL_OPTS[USER_AGENT]}" ]; then
-        echo "${CURL_OPTS[USER_AGENT]#|-A|}"
-    else
-        echo "default"
-    fi
+  local OPTIND opt d=false
+  while getopts d opt; do
+    case "$opt" in
+      d) d=true; ;;
+      ?) return; ;;
+    esac
+  done
+  shift $((OPTIND-1))
+  if $d; then
+    unset CURL_OPTS[USER_AGENT]
+  elif [ -n "$1" ]; then
+    CURL_OPTS[USER_AGENT]="|-A|$1"
+  elif [ -n "${CURL_OPTS[USER_AGENT]}" ]; then
+    echo "${CURL_OPTS[USER_AGENT]#|-A|}"
+  else
+    echo "default"
+  fi
 }
 
 # I/O mode switching functions
