@@ -437,7 +437,7 @@ header() {
     elif $d; then
       unset CURL_OPTS[$key]
     else
-      echo "${CURL_OPTS[$key]#*: }"
+      echo "$header: ${CURL_OPTS[$key]#*: }"
     fi
   else
     for key in "${!CURL_OPTS[@]}"; do
@@ -481,26 +481,36 @@ basic-auth() {
 
 ## Set ssl-insecure on to allow self-signed and incorrect certificates.
 ssl-insecure() {
-  unset CURL_OPTS[SSL_INSECURE]
-  =truth "$1" && CURL_OPTS[SSL_INSECURE]='|-k'
+  if [ -z "$1" ]; then
+    local state
+    [ "${CURL_OPTS[SSL_INSECURE]:+x}" == x ] && state=on || state=off
+    echo ssl-insecure: "$state"
+  elif =truth "$1"; then
+    CURL_OPTS[SSL_INSECURE]='|-k'
+  elif [ $? -eq 1 ]; then
+    unset CURL_OPTS[SSL_INSECURE]
+  else
+    echo "Usage: ssl-insecure [on|off]"
+  fi
 }
 
 cookie-jar() {
+  local dfault="|-b|$COOKIEJAR|-c|$COOKIEJAR"
   if [ -z "$1" ]; then
-    local val="${CURL_OPTS[COOKIEJAR]#|-c|}"
+    local val="${CURL_OPTS[COOKIEJAR]#*|-c|}"
     if [ -z "${CURL_OPTS[COOKIEJAR]}" ]; then
-      echo cookie-jar off
+      echo cookie-jar: off
     elif [ "$val" == "$COOKIEJAR" ]; then
-      echo cookie-jar on
+      echo cookie-jar: on
     else
-      echo cookie-jar "$val"
+      echo cookie-jar: "$val"
     fi
   elif =truth "$1"; then
-    CURL_OPTS[COOKIEJAR]="|-c|$COOKIEJAR"
+    CURL_OPTS[COOKIEJAR]="|-b|$COOKIEJAR|-c|$COOKIEJAR"
   elif [ $? -eq 1 ]; then
     unset CURL_OPTS[COOKIEJAR]
   else
-    CURL_OPTS[COOKIEJAR]="|-c|$1"
+    CURL_OPTS[COOKIEJAR]="|-b|$1|-c|$1"
   fi
 }
 
@@ -518,9 +528,9 @@ user-agent() {
   elif [ -n "$1" ]; then
     CURL_OPTS[USER_AGENT]="|-A|$1"
   elif [ -n "${CURL_OPTS[USER_AGENT]}" ]; then
-    echo "${CURL_OPTS[USER_AGENT]#|-A|}"
+    echo user-agent: "${CURL_OPTS[USER_AGENT]#|-A|}"
   else
-    echo "default"
+    echo user-agent: "default"
   fi
 }
 
