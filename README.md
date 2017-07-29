@@ -46,7 +46,10 @@ REST.BASH COMMANDS
 * content-type [header-value]  
 * cookie [header-value]  
     Set the HTTP header to the specified value. Omitting the
-    value removes the header.
+    value prints the currently set value, if any.
+
+* header -d <header-name>
+    Remove the header if set.
 
 * basic-auth [user] [pass]  
     Set the Authentication header to use basic authentication.
@@ -86,6 +89,7 @@ REST.BASH COMMANDS
 * get [-dn] [url]  
 * post [-dn] [url]  
 * put [-dn] [url]  
+* options [-dn] [url]
 * delete [-dn] [url]  
     Execute get, post, put, and delete requests using the
     current URL. If the optional URL element is specified it is
@@ -110,10 +114,11 @@ REST.BASH COMMANDS
     * -n  
        Do not read any payload.
 
-    'get' and 'delete' will not read $PAYLOAD unless '-d' is set,
-    whereas 'post' and put *will* read $PAYLOAD unless '-n' is
-    set. If both '-d' and '-n' are specified and/or multiple
-    times, the last occurence will take precedence.
+    'get', 'options', and 'delete' will not read $PAYLOAD unless
+    '-d' is set, whereas 'post' and put *will* read $PAYLOAD
+    unless '-n' is set. If both '-d' and '-n' are specified
+    and/or multiple times, the last occurence will take
+    precedence.
 
 * load [file]  
     Short hand command for loading a file into $PAYLOAD. If no
@@ -158,6 +163,20 @@ REST.BASH COMMANDS
     using self signed certificates or similar. Specifying
     anything else (such as 'off' or 'no') will enable
     certificate validation (this is also the default).
+
+* cookie-jar [on/file-name/off]  
+    Enable or disable the use of a cookie jar. Specifying a
+    file-name will enable cookie-jar with that file, specifying
+    "on" will use a temporary file. If not parameter is given,
+    the current state is returned.
+
+* user-agent [-d] [user-agent]  
+    Set the user-agent string, or use -d to revert to default. If
+    no parameter is given, the current state is returned.
+
+* reload-cookbook  
+    Reload the custom scripts from rest.bashrc and rest.bashrc.d,
+    useful if you're editing these as you go.
 
 CUSTOM MODES
 ============
@@ -210,6 +229,12 @@ and are used to modify rest.bash's behavior.
     contain the name of a output filter function, such as a
     pretty printer.
 
+* $input_filter  
+    Executed with a the input file and the previous output file as
+    parameter, should contain the name of a input filter
+    function, such as a normalizer or a tool that maps data from
+    the previous output into the input.
+
 * $_on_output  
     Hook which is evaluated once new data is available. The
     evaluated value is ignored.
@@ -248,7 +273,9 @@ FILES
 * ~/.rest.bashrc.d/  
     The directory containing personal custom scripts. All files
     (except .*) in this directory will be sourced on launch. See
-    the cookbook directory in the source tree for examples.
+    the cookbook directory in the source tree for examples. Use
+    the reload-cookbook command to reload these. Useful if you're
+    editing as you go.
 
 BUGS
 ====
@@ -267,7 +294,7 @@ Written by Fredrik Alstromer <falstro@excu.se>
 
 COPYRIGHT
 =========
-rest.bash is Copyright (c) 2015 Fredrik Alstromer.
+rest.bash is Copyright (c) 2015-2017 Fredrik Alstromer.
 
 Distributed under the MIT license.
 
