@@ -227,6 +227,12 @@ fi
 #                 contain the name of a output filter function, such as a
 #                 pretty printer.
 #
+#         * $input_filter 
+#                 Executed with a the input file and the previous output file as
+#                 parameter, should contain the name of a input filter
+#                 function, such as a normalizer or a tool that maps data from
+#                 the previous output into the input.
+#
 #         * $_on_output 
 #                 Hook which is evaluated once new data is available. The
 #                 evaluated value is ignored.
@@ -347,6 +353,10 @@ fi
 # hook for reacting on new output
 _on_output=true
 
+# hook for controlling input/output
+input_filter=
+output_filter=
+
 # hook for controlling stdout; evaluate to false to suppress.
 _stdout=true
 
@@ -358,11 +368,13 @@ url() { echo "$URL_PROTO://$URL_HOST${URL_PATH:-/}"; }
 URL_PREV="$(url)"
 
 PAYLOAD=`$MKTEMP /tmp/rest-payload.XXXXXX`
+TMPAYLOAD=`$MKTEMP /tmp/rest-tmpayload.XXXXXX`
 OUTPUT=`$MKTEMP /tmp/rest-output.XXXXXX`
+TMOUTPUT=`$MKTEMP /tmp/rest-tmoutput.XXXXXX`
 COOKIEJAR=`$MKTEMP /tmp/rest-cookiejar.XXXXXX`
 HTTPHEADER=`$MKTEMP /tmp/rest-httpstatus.XXXXXX`
 
-trap "$RM $PAYLOAD $OUTPUT $COOKIEJAR $HTTPHEADER; mode none" EXIT
+trap "$RM $PAYLOAD $TMPAYLOAD $OUTPUT $TMOUTPUT $COOKIEJAR $HTTPHEADER; mode none" EXIT
 export OUTPUT PAYLOAD HTTPHEADER
 
 files() {
@@ -558,7 +570,8 @@ mode() {
 =unset-mode() {
   accept '*/*'
   content-type -d
-  output_filter='cat'
+  output_filter=
+  input_filter=
   alias sel=false
 }
 
@@ -597,6 +610,13 @@ JOQE="`which joqe`"
 =joqe-filter() {
   $JOQE -ffqr / "$1" || =plain-filter "$1"
 }
+=joqe-input() {
+  if [ -z "$2" -o "$(stat -c %s $2)" == 0 ]; then
+    $JOQE -q / "$1"
+  else
+    $JOQE -q "$(cat $1)" "$2"
+  fi
+}
 =joqe-select() {
   $JOQE -ffr "$*" "$OUTPUT"
 }
@@ -609,6 +629,7 @@ JOQE="`which joqe`"
   if [ -x "$JOQE" ]; then
     alias sel='=joqe-select'
     output_filter='=joqe-filter'
+    input_filter='=joqe-input'
   else
     alias sel='=plain-select'
     echo "joqe unavailable." >&2
@@ -710,7 +731,6 @@ suffix() {
 }
 
 curl() {
-  TMPOUT=`/bin/mktemp /tmp/rest-output-tmp.XXXXXX`
   (
     IFS="|"
     url=$(url)
@@ -721,12 +741,13 @@ curl() {
         url="$url$URL_SUFFIX"
       fi
     fi
-    $CURL $(=curl-opts) "$@" -o $TMPOUT "$url"
+    $CURL $(=curl-opts) "$@" -o $TMOUTPUT "$url"
   )
   code=$?
 
-  $output_filter "$TMPOUT" > "$OUTPUT"
-  rm -f "$TMPOUT"
+  [ -n "$output_filter" ] &&
+    $output_filter "$TMOUTPUT" > "$OUTPUT" ||
+    cp "$TMOUTPUT" > "$OUTPUT"
 
   $_on_output
   $_stdout && cat $OUTPUT
@@ -748,7 +769,18 @@ load() {
 }
 
 =payload-file() {
-  [ -t 0 ] && echo $PAYLOAD || echo -
+  local source
+
+  if [ -t 0 ]; then
+    source="$PAYLOAD"
+  else
+    source="-"
+  fi
+
+  [ -n "$input_filter" ] &&
+    $input_filter "$source" "$OUTPUT" > "$TMPAYLOAD" &&
+    echo "$TMPAYLOAD" ||
+    echo "$source"
 }
 
 _call() {
