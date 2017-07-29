@@ -373,14 +373,17 @@ URL_SUFFIX=""
 url() { echo "$URL_PROTO://$URL_HOST${URL_PATH:-/}"; }
 URL_PREV="$(url)"
 
-PAYLOAD=`$MKTEMP /tmp/rest-payload.XXXXXX`
-TMPAYLOAD=`$MKTEMP /tmp/rest-tmpayload.XXXXXX`
-OUTPUT=`$MKTEMP /tmp/rest-output.XXXXXX`
-TMOUTPUT=`$MKTEMP /tmp/rest-tmoutput.XXXXXX`
-COOKIEJAR=`$MKTEMP /tmp/rest-cookiejar.XXXXXX`
-HTTPHEADER=`$MKTEMP /tmp/rest-httpstatus.XXXXXX`
+CLEANUP=""
+temp-file() {
+  for v in "$@"; do
+    eval "$v"='$($MKTEMP -t rest-"$v".XXXXXX)'
+    CLEANUP="$CLEANUP ${!v}"
+  done
+}
+trap '$RM $CLEANUP; mode none' EXIT
 
-trap "$RM $PAYLOAD $TMPAYLOAD $OUTPUT $TMOUTPUT $COOKIEJAR $HTTPHEADER; mode none" EXIT
+temp-file PAYLOAD TMPAYLOAD TMINPUT OUTPUT TMOUTPUT COOKIEJAR HTTPHEADER
+
 export OUTPUT PAYLOAD HTTPHEADER
 
 files() {
@@ -783,10 +786,13 @@ load() {
     source="-"
   fi
 
-  [ -n "$input_filter" ] &&
+  if [ -n "$input_filter" ]; then
+    [ "$source" = '-' ] && cat > "$TMINPUT" && source="$TMINPUT"
+
     $input_filter "$source" "$OUTPUT" > "$TMPAYLOAD" &&
-    echo "$TMPAYLOAD" ||
-    echo "$source"
+      source="$TMPAYLOAD"
+  fi
+  echo "$source"
 }
 
 _call() {
