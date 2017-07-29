@@ -169,15 +169,19 @@ fi
 #                 anything else (such as 'off' or 'no') will enable
 #                 certificate validation (this is also the default).
 #
-#         * cookie-jar [on/file-name/off]
+#         * cookie-jar [on/file-name/off] 
 #                 Enable or disable the use of a cookie jar. Specifying a
 #                 file-name will enable cookie-jar with that file, specifying
 #                 "on" will use a temporary file. If not parameter is given,
 #                 the current state is returned.
 #
-#         * user-agent [-d] [user-agent]
+#         * user-agent [-d] [user-agent] 
 #                 Set the user-agent string, or use -d to revert to default. If
 #                 no parameter is given, the current state is returned.
+#
+#         * reload-cookbook 
+#                 Reload the custom scripts from rest.bashrc and rest.bashrc.d,
+#                 useful if you're editing these as you go.
 #
 # CUSTOM MODES
 #         To define custom modes you need to define a function using the name
@@ -269,7 +273,9 @@ fi
 #         * ~/.rest.bashrc.d/ 
 #                 The directory containing personal custom scripts. All files
 #                 (except .*) in this directory will be sourced on launch. See
-#                 the cookbook directory in the source tree for examples.
+#                 the cookbook directory in the source tree for examples. Use
+#                 the reload-cookbook command to reload these. Useful if you're
+#                 editing as you go.
 #
 # BUGS
 #         Probably several. One source of confusion is the practice of testing
@@ -861,14 +867,18 @@ delete() {
 
 default-settings
 
-if [ -n "$_SCRIPT" ]; then
-  source "$_SCRIPT"
-else
+reload-cookbook() {
   [ -r ~/.rest.bashrc ] && source ~/.rest.bashrc
   if [ -d ~/.rest.bashrc.d ]; then
     for f in ~/.rest.bashrc.d/*; do
       source "$f"
     done
   fi
+}
+
+if [ -n "$_SCRIPT" ]; then
+  source "$_SCRIPT"
+else
+  reload-cookbook
 fi
 
