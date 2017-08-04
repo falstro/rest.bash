@@ -139,9 +139,10 @@ fi
 #                         Plain mode uses no output formatting and uses simply
 #                         'grep' for selections using 'sel'.
 #                 * json 
-#                         JSON mode uses Python's json module for pretty
-#                         printing and the tool 'joqe' for selections using
-#                         'sel' if available.
+#                         JSON mode uses 'joqe' if available for pretty
+#                         printing, input filtering, and selections using 'sel',
+#                         if available. If not, Python's json module is used for
+#                         pretty printing.
 #                 * xml 
 #                         XML mode uses 'xmllint' for pretty printing and
 #                         XPath selections using 'sel' if available.
@@ -149,7 +150,7 @@ fi
 #         * sel <query> 
 #                 Select data from the previous output. This uses the $OUTPUT
 #                 file and can be executed several times without sending new
-#                 requests to the service. The query syntax is defined by The
+#                 requests to the service. The query syntax is defined by the
 #                 I/O mode, e.g. use XPath for XML.
 #                 NOTE: 'sel' is an alias, and can't reliably be used in
 #                       functions as aliases are resolved during function
@@ -182,6 +183,15 @@ fi
 #         * reload-cookbook 
 #                 Reload the custom scripts from rest.bashrc and rest.bashrc.d,
 #                 useful if you're editing these as you go.
+#
+# RESPONSE HISTORY
+#
+#         * back [n] 
+#                 Go back to a previous response. $OUTPUT will be replaced.
+#
+#         * forward [n] 
+#                 Go forward again to a later response. $OUTPUT will be
+#                 replaced.
 #
 # CUSTOM MODES
 #         To define custom modes you need to define a function using the name
@@ -332,6 +342,10 @@ MKTEMP=/bin/mktemp
 RM=/bin/rm
 SED=/bin/sed
 TEE=/usr/bin/tee
+TAIL=/usr/bin/tail
+HEAD=/usr/bin/head
+GZIP=/bin/gzip
+TRUNCATE=/usr/bin/truncate
 
 VERSION=0.9
 
@@ -383,6 +397,7 @@ temp-file() {
 trap '$RM $CLEANUP; mode none' EXIT
 
 temp-file PAYLOAD TMPAYLOAD TMINPUT OUTPUT TMOUTPUT COOKIEJAR HTTPHEADER
+temp-file HISTORY
 
 export OUTPUT PAYLOAD HTTPHEADER
 
@@ -769,6 +784,66 @@ curl() {
   return 0
 }
 
+declare -a HISTACK=(0)
+HIPOS=0
+=history-append() {
+  $GZIP -nc $OUTPUT >> $HISTORY
+  HISTACK+=($(stat -c %s $HISTORY))
+  HIPOS=${#HISTACK[*]}
+}
+
+=history-fetch() {
+  local off size where
+  where=${1:--1}
+  off=$((HISTACK[where-1]))
+  size=$((HISTACK[where]-off))
+  # tail is evidently 1-based
+  $TAIL -c +$((off+1)) $HISTORY | $HEAD -c $size | $GZIP -dc
+}
+
+=history-pop() {
+  local c
+  for c in $(seq ${1:-1}); do
+    unset HISTACK[-1]
+  done
+
+  $TRUNCATE -s ${HISTACK[-1]} $HISTORY
+
+  if [[ $HIPOS -gt ${#HISTACK[*]} ]]; then
+    HIPOS=${#HISTACK[*]}
+  fi
+}
+
+=history-goto() {
+  local next=$1
+  if [[ $next -gt ${#HISTACK[*]} ]]; then
+    echo "No later output"
+    return
+  elif [[ $next -lt 2 ]]; then
+    echo "No previous output"
+    return
+  fi
+  HIPOS=$next
+  =history-fetch $((HIPOS - 1)) > $OUTPUT
+  $_on_output
+  $_stdout && cat $OUTPUT
+  echo "Output: $((HIPOS - 1)) / $((${#HISTACK[*]} - 1))"
+}
+
+back() {
+  local adj=${1:-1}
+  =history-goto $((HIPOS - adj))
+}
+
+forward() {
+  local adj=${1:-1}
+  =history-goto $((HIPOS + adj))
+}
+
+last() {
+  =history-goto ${#HISTACK[*]}
+}
+
 load() {
   if [ -n "$1" ]; then
     cp "$1" $PAYLOAD
@@ -821,6 +896,8 @@ _call() {
   else
     "$f" "${args[@]}" "$@"
   fi
+
+  =history-append
 }
 _get() {
   curl "$@"

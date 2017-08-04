@@ -134,9 +134,10 @@ REST.BASH COMMANDS
         Plain mode uses no output formatting and uses simply
         'grep' for selections using 'sel'.
     * json  
-        JSON mode uses Python's json module for pretty
-        printing and the tool 'joqe' for selections using
-        'sel' if available.
+        JSON mode uses 'joqe' if available for pretty
+        printing, input filtering, and selections using 'sel',
+        if available. If not, Python's json module is used for
+        pretty printing.
     * xml  
         XML mode uses 'xmllint' for pretty printing and
         XPath selections using 'sel' if available.
@@ -144,7 +145,7 @@ REST.BASH COMMANDS
 * sel <query>  
     Select data from the previous output. This uses the $OUTPUT
     file and can be executed several times without sending new
-    requests to the service. The query syntax is defined by The
+    requests to the service. The query syntax is defined by the
     I/O mode, e.g. use XPath for XML.
     NOTE: 'sel' is an alias, and can't reliably be used in
        functions as aliases are resolved during function
@@ -177,6 +178,16 @@ REST.BASH COMMANDS
 * reload-cookbook  
     Reload the custom scripts from rest.bashrc and rest.bashrc.d,
     useful if you're editing these as you go.
+
+RESPONSE HISTORY
+================
+
+* back [n]  
+    Go back to a previous response. $OUTPUT will be replaced.
+
+* forward [n]  
+    Go forward again to a later response. $OUTPUT will be
+    replaced.
 
 CUSTOM MODES
 ============
