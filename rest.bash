@@ -216,7 +216,7 @@ fi
 #                         alias sel='=xml-select'
 #                 }
 #                 -xml() {
-#                         =unset-mode
+#                         echo "clean-up any temporary files, etc"
 #                 }
 #                 =xml-filter() {
 #                         xmllint --format "$1"
@@ -226,8 +226,9 @@ fi
 #                 }
 #
 #         To enable, use 'mode xml'. '=unset-mode' is a helper function
-#         provided by rest.bash to unset common mode overrides, such as the
-#         accept header, content-type header, output_filter and sel alias.
+#         provided to unset common mode overrides, such as the accept header,
+#         content-type header, output_filter and sel alias. It will always be
+#         called when leaving any mode.
 #
 # SEE ALSO
 #         * bash(1)
@@ -579,6 +580,7 @@ mode() {
     if [ "`type -t -- "-$MODE"`" == function ]; then
       "-$MODE"
     fi
+    =unset-mode
     "+$1" && MODE="$1"
   else
     echo "mode: '$1' unknown" >&2
@@ -619,7 +621,7 @@ mode() {
 }
 
 -plain() {
-  =unset-mode
+  true
 }
 
 ## JSON mode
@@ -668,7 +670,7 @@ JOQE="`which joqe`"
 }
 
 -json() {
-  =unset-mode
+  true
 }
 
 ## XML mode
@@ -696,7 +698,7 @@ XMLPP="$XMLLINT --format"
   fi
 }
 -xml() {
-  =unset-mode
+  true
 }
 
 cq() {
