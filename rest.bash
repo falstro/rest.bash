@@ -634,17 +634,17 @@ JOQE="`which joqe`"
 }
 
 =joqe-filter() {
-  $JOQE -ffqr / "$1" || =plain-filter "$1"
+  $JOQE -FFqr / "$1" || =plain-filter "$1"
 }
 =joqe-input() {
   if [ -z "$2" -o "$(stat -c %s $2)" == 0 ]; then
     $JOQE -q / "$1"
   else
-    $JOQE -q "$(cat $1)" "$2"
+    $JOQE -qf "$1" "$2"
   fi
 }
 =joqe-select() {
-  $JOQE -ffr "$*" "$OUTPUT"
+  $JOQE -FFr "$*" "$OUTPUT"
 }
 
 +json() {
