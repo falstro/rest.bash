@@ -410,7 +410,7 @@ files() {
 resultcode() {
   local line=`$SED -ne 's/[\r\n]*$//' -e1p -eq $HTTPHEADER`
   case $line in
-    HTTP/2.0\ *) cut -f2 -d ' '<<<$line; ;;
+    HTTP/2.0\ *|HTTP/2\ *) cut -f2 -d ' '<<<$line; ;;
     HTTP/1.*|HTTP/0.9\ *) cut -f2 -d ' '<<<$line; ;;
     *) echo ---; ;;
   esac
