@@ -773,7 +773,7 @@ curl() {
 
   [ -n "$output_filter" ] &&
     $output_filter "$TMOUTPUT" > "$OUTPUT" ||
-    cp "$TMOUTPUT" > "$OUTPUT"
+    cp "$TMOUTPUT" "$OUTPUT"
 
   $_on_output
   $_stdout && cat $OUTPUT
