@@ -353,7 +353,7 @@ VERSION=0.9
 HISTFILE=~/.rest.bash_history
 
 if [ -n "$PS1" ]; then
-  tPS1='$(resultcode) REST[$(url)]'
+  tPS1='$(resultcode) $(=history-ps1) [$(url)]'
   PS1="$tPS1"'\$ '
   color_prompt=false
   case "$TERM" in
@@ -362,7 +362,7 @@ if [ -n "$PS1" ]; then
       ;;
   esac
   if $color_prompt; then
-    PS1='\[$(resultcode-color)\]$(resultcode)\[\e[00m\] REST[$(url)] '
+    PS1='\[$(resultcode-color)\]$(resultcode)\[\e[00m\]$(=history-ps1) [$(url)] '
   fi
   case "$TERM" in
     xterm*|rxvt*)
@@ -511,8 +511,7 @@ basic-auth() {
       echo
     fi
     # don't use --user param to curl, password may contain '|'.
-    local b64=`echo -n $user:$pass|base64`
-    authorization Basic $b64
+    authorization Basic $(echo -n $user:$pass|base64 -w0)
   fi
 }
 
@@ -634,13 +633,13 @@ JOQE="`which joqe`"
 }
 
 =joqe-filter() {
-  $JOQE -FFqr / "$1" || =plain-filter "$1"
+  $JOQE -FFqr . "$1" || =plain-filter "$1"
 }
 =joqe-input() {
   if [ -z "$2" -o "$(stat -c %s $2)" == 0 ]; then
-    $JOQE -q / "$1"
+    $JOQE -q . "$1"
   else
-    $JOQE -qf "$1" "$2"
+    $JOQE -qf "$1" "$2" || $JOQE -q . "$1"
   fi
 }
 =joqe-select() {
@@ -787,7 +786,14 @@ curl() {
 }
 
 declare -a HISTACK=(0)
-HIPOS=0
+HIPOS=1
+=history-ps1() {
+  local x=${#HISTACK[*]}
+  if [ $HIPOS != $x ]; then
+    echo " $((HIPOS-1))/$((x-1))"
+  fi
+}
+
 =history-append() {
   $GZIP -nc $OUTPUT >> $HISTORY
   HISTACK+=($(stat -c %s $HISTORY))
@@ -829,7 +835,6 @@ HIPOS=0
   =history-fetch $((HIPOS - 1)) > $OUTPUT
   $_on_output
   $_stdout && cat $OUTPUT
-  echo "Output: $((HIPOS - 1)) / $((${#HISTACK[*]} - 1))"
 }
 
 back() {
@@ -843,7 +848,13 @@ forward() {
 }
 
 last() {
-  =history-goto ${#HISTACK[*]}
+  local adj=${1:-0}
+  =history-goto $((${#HISTACK[*]} - adj))
+}
+
+first() {
+  local adj=${1:-0}
+  =history-goto $((1 + adj))
 }
 
 load() {
@@ -851,6 +862,14 @@ load() {
     cp "$1" $PAYLOAD
   else
     cat > $PAYLOAD
+  fi
+}
+
+use() {
+  if [ -n "$1" ]; then
+    PAYLOAD=$(readlink -f "$1")
+  else
+    echo "Usage: use <file>"
   fi
 }
 
